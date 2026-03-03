@@ -25,6 +25,8 @@ from .const import (
     CONF_PAYLOAD,
     CONF_TARGET_KEY,
     CONF_URL,
+    CONF_USERNAME,
+    CONF_PASSWORD,
     DEFAULT_MESSAGE_KEY,
     DEFAULT_METHOD,
     DEFAULT_TARGET_KEY,
@@ -66,6 +68,8 @@ class SmsGatewayNotificationService(BaseNotificationService):
         self._target_key = config.get(CONF_TARGET_KEY, DEFAULT_TARGET_KEY)
         self._message_key = config.get(CONF_MESSAGE_KEY, DEFAULT_MESSAGE_KEY)
         self._default_target = config.get(CONF_DEFAULT_TARGET)
+        self._username = config.get(CONF_USERNAME)
+        self._password = config.get(CONF_PASSWORD)
 
     def send_message(self, message: str = "", **kwargs: Any) -> None:
         """Send a message to a user."""
@@ -117,13 +121,17 @@ class SmsGatewayNotificationService(BaseNotificationService):
 
             set_nested_value(payload, message_keys, message)
 
+            auth = None
+            if self._username and self._password:
+                auth = (self._username, self._password)
+
             try:
                 if self._method.upper() == "GET":
                     # GET params don't support deeply nested JSON well natively in requests,
                     # but typically GET APIs are flat.
-                    response = requests.get(self._url, params=payload, headers=self._headers, timeout=10)
+                    response = requests.get(self._url, params=payload, headers=self._headers, auth=auth, timeout=10)
                 else:
-                    response = requests.post(self._url, json=payload, headers=self._headers, timeout=10)
+                    response = requests.post(self._url, json=payload, headers=self._headers, auth=auth, timeout=10)
 
                 response.raise_for_status()
             except requests.exceptions.RequestException as err:

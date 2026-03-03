@@ -44,7 +44,8 @@ Once installed and your Home Assistant has restarted:
 - **Name**: A friendly name for this notification service.
 - **URL**: The full HTTP/HTTPS URL of your SMS Gateway API endpoint.
 - **Method**: Choose `POST` or `GET`.
-- **Headers**: A valid JSON string containing any HTTP headers required by the API (e.g., `{"Authorization": "Bearer YOUR_TOKEN"}`).
+- **Username** & **Password**: (Optional) For APIs that require Basic Authentication.
+- **Headers**: A valid JSON string containing any extra HTTP headers required by the API (e.g., `{"Authorization": "Bearer YOUR_TOKEN"}`).
 - **Payload Base**: A valid JSON string containing the static base structure of your request payload (e.g., `{"sender": "HomeAssistant"}`). Default is `{}`.
 - **Target Key**: The JSON key where the recipient phone number should be injected. Use dot-notation for nested fields (e.g., `destination.phone`). If the API expects an array of numbers, the integration will automatically wrap the single target in a list if you name it `phoneNumbers` or if the base payload already contains a list at that key.
 - **Message Key**: The JSON key where the actual text message should be injected. Use dot-notation for nested fields (e.g., `textMessage.text`).
@@ -60,7 +61,9 @@ The [android-sms-gateway](https://github.com/capcom6/android-sms-gateway) app tu
 **Configuration:**
 - **URL**: `http://<device_local_ip>:8080/message`
 - **Method**: `POST`
-- **Headers**: `{"Authorization": "Basic BASE64_ENCODED_USER_PASS"}`
+- **Username**: `your_username`
+- **Password**: `your_password`
+- **Headers**: `{}`
 - **Payload Base**: `{"textMessage": {}}`
 - **Target Key**: `phoneNumbers`
 - **Message Key**: `textMessage.text`

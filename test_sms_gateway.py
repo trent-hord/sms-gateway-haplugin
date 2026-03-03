@@ -13,6 +13,8 @@ from custom_components.sms_gateway.const import (
     CONF_PAYLOAD,
     CONF_TARGET_KEY,
     CONF_URL,
+    CONF_USERNAME,
+    CONF_PASSWORD,
     DOMAIN,
 )
 from custom_components.sms_gateway.notify import SmsGatewayNotificationService
@@ -175,3 +177,32 @@ def test_send_message_nested_capcom6(mock_hass, requests_mock):
         "phoneNumbers": ["+15551234567"]
     }
     assert request.json() == expected_payload
+
+
+def test_send_message_basic_auth(mock_hass, requests_mock):
+    """Test sending a message with basic authentication."""
+    config = {
+        CONF_URL: "http://example.com/api/sms",
+        CONF_METHOD: "POST",
+        CONF_USERNAME: "test_user",
+        CONF_PASSWORD: "test_password",
+        CONF_TARGET_KEY: "number",
+        CONF_MESSAGE_KEY: "text",
+    }
+
+    service = SmsGatewayNotificationService(mock_hass, config)
+    requests_mock.post("http://example.com/api/sms", text="OK", status_code=200)
+
+    service.send_message("Auth test", **{ATTR_TARGET: ["+100"]})
+
+    assert requests_mock.called
+    request = requests_mock.last_request
+
+    # requests library handles basic auth by adding the Authorization header automatically
+    import base64
+    auth_string = base64.b64encode(b"test_user:test_password").decode("utf-8")
+    assert request.headers["Authorization"] == f"Basic {auth_string}"
+    assert request.json() == {
+        "number": "+100",
+        "text": "Auth test"
+    }

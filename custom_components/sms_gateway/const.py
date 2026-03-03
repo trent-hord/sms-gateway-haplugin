@@ -13,6 +13,8 @@ CONF_PAYLOAD: Final = "payload"
 CONF_TARGET_KEY: Final = "target_key"
 CONF_MESSAGE_KEY: Final = "message_key"
 CONF_DEFAULT_TARGET: Final = "default_target"
+CONF_USERNAME: Final = "username"
+CONF_PASSWORD: Final = "password"
 
 DEFAULT_METHOD: Final = "POST"
 DEFAULT_TARGET_KEY: Final = "to"
