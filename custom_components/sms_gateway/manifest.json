@@ -1,0 +1,10 @@
+{
+  "domain": "sms_gateway",
+  "name": "SMS Gateway",
+  "codeowners": ["@jules"],
+  "config_flow": true,
+  "documentation": "https://github.com/home-assistant/core",
+  "iot_class": "cloud_push",
+  "requirements": [],
+  "version": "1.0.0"
+}
