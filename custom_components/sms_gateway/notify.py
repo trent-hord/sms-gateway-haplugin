@@ -81,59 +81,50 @@ class SmsGatewayNotificationService(BaseNotificationService):
             _LOGGER.error("No targets specified and no default target configured")
             return
 
-        for target in targets:
-            payload = copy.deepcopy(self._base_payload)
+        payload = copy.deepcopy(self._base_payload)
 
-            def set_nested_value(d: dict, keys: list[str], val: Any) -> None:
-                for key in keys[:-1]:
-                    d = d.setdefault(key, {})
-                # If target key expects an array (like capcom6/android-sms-gateway phoneNumbers),
-                # check if it already exists to append, or wrap it in a list.
-                # However, for full compatibility we handle lists explicitly if the user configuration provides a list.
-                # The easiest way to deal with nested keys is splitting by "."
-                d[keys[-1]] = val
+        def set_nested_value(d: dict, keys: list[str], val: Any) -> None:
+            for key in keys[:-1]:
+                d = d.setdefault(key, {})
+            d[keys[-1]] = val
 
-            target_keys = self._target_key.split(".")
-            message_keys = self._message_key.split(".")
+        target_keys = self._target_key.split(".")
+        message_keys = self._message_key.split(".")
 
-            # Check if the target key refers to an array element or requires array wrapping.
-            # Many APIs (including capcom6/android-sms-gateway) use 'phoneNumbers' array.
-            # For simplicity, if the user configures target_key="phoneNumbers", we will set it to [target].
+        def get_nested_value(d: dict, keys: list[str]) -> Any:
+            for key in keys:
+                if not isinstance(d, dict) or key not in d:
+                    return None
+                d = d[key]
+            return d
 
-            # Since users might define payload template {"phoneNumbers": []},
-            # let's be smart: if the current value at target_key is a list, append/set it.
-            def get_nested_value(d: dict, keys: list[str]) -> Any:
-                for key in keys:
-                    if not isinstance(d, dict) or key not in d:
-                        return None
-                    d = d[key]
-                return d
-
-            current_target_val = get_nested_value(payload, target_keys)
-            if isinstance(current_target_val, list):
-                set_nested_value(payload, target_keys, [target])
-            else:
-                # If target key is phoneNumbers we will automatically wrap it, as a common heuristic.
-                if target_keys[-1] == "phoneNumbers":
-                    set_nested_value(payload, target_keys, [target])
-                else:
-                    set_nested_value(payload, target_keys, target)
-
+        current_target_val = get_nested_value(payload, target_keys)
+        # Many APIs (including capcom6/android-sms-gateway) use 'phoneNumbers' array.
+        # Support batching multiple targets into a single request
+        if isinstance(current_target_val, list) or target_keys[-1] == "phoneNumbers":
+            set_nested_value(payload, target_keys, targets)
             set_nested_value(payload, message_keys, message)
+            self._send_payload(payload)
+        else:
+            for target in targets:
+                p = copy.deepcopy(payload)
+                set_nested_value(p, target_keys, target)
+                set_nested_value(p, message_keys, message)
+                self._send_payload(p)
 
-            auth = None
-            if self._username and self._password:
-                auth = (self._username, self._password)
+    def _send_payload(self, payload: dict) -> None:
+        auth = None
+        if self._username and self._password:
+            auth = (self._username, self._password)
 
-            try:
-                if self._method.upper() == "GET":
-                    # GET params don't support deeply nested JSON well natively in requests,
-                    # but typically GET APIs are flat.
-                    response = requests.get(self._url, params=payload, headers=self._headers, auth=auth, timeout=10)
-                else:
-                    response = requests.post(self._url, json=payload, headers=self._headers, auth=auth, timeout=10)
+        try:
+            if self._method.upper() == "GET":
+                response = requests.get(self._url, params=payload, headers=self._headers, auth=auth, timeout=10)
+            else:
+                response = requests.post(self._url, json=payload, headers=self._headers, auth=auth, timeout=10)
 
-                response.raise_for_status()
-            except requests.exceptions.RequestException as err:
-                _LOGGER.error("Error sending SMS via gateway: %s", err)
-                raise HomeAssistantError(f"Error communicating with SMS Gateway: {err}") from err
+            response.raise_for_status()
+        except requests.exceptions.RequestException as err:
+            _LOGGER.error("Error sending SMS via gateway: %s", err)
+            raise HomeAssistantError(f"Error communicating with SMS Gateway: {err}") from err
+
