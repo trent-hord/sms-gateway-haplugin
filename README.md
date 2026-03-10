@@ -47,7 +47,7 @@ Once installed and your Home Assistant has restarted:
 - **Username** & **Password**: (Optional) For APIs that require Basic Authentication.
 - **Headers**: A valid JSON string containing any extra HTTP headers required by the API (e.g., `{"Authorization": "Bearer YOUR_TOKEN"}`).
 - **Payload Base**: A valid JSON string containing the static base structure of your request payload (e.g., `{"sender": "HomeAssistant"}`). Default is `{}`.
-- **Target Key**: The JSON key where the recipient phone number should be injected. Use dot-notation for nested fields (e.g., `destination.phone`). If the API expects an array of numbers, the integration will automatically wrap the single target in a list if you name it `phoneNumbers` or if the base payload already contains a list at that key.
+- **Target Key**: The JSON key where the recipient phone number should be injected. Use dot-notation for nested fields (e.g., `destination.phone`). If the API expects an array of numbers, the integration will automatically wrap the target(s) in a list and batch them into a single request if you name the key `phoneNumbers` or if the base payload already contains a list at that key. For all other target keys, sending to multiple targets will result in separate API requests being sent for each target.
 - **Message Key**: The JSON key where the actual text message should be injected. Use dot-notation for nested fields (e.g., `textMessage.text`).
 - **Default Target**: (Optional) The default phone number to send to if no target is provided in your automation.
 
@@ -68,13 +68,13 @@ The [android-sms-gateway](https://github.com/capcom6/android-sms-gateway) app tu
 - **Target Key**: `phoneNumbers`
 - **Message Key**: `textMessage.text`
 
-*Note: Because you set `Target Key` to `phoneNumbers`, the integration will automatically format the request like this:*
+*Note: Because you set `Target Key` to `phoneNumbers`, the integration will automatically format the request with an array. If you pass multiple targets in your automation, they will be batched into a single request like this:*
 ```json
 {
   "textMessage": {
     "text": "Your Home Assistant Message"
   },
-  "phoneNumbers": ["+15551234567"]
+  "phoneNumbers": ["+15551234567", "+15557654321"]
 }
 ```
 
